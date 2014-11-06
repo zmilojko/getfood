@@ -24,8 +24,8 @@ end
 
 def get_listat category
   page = get_page(BASE_LINK + category)
-  page.scan(/<a class="first white-border-box product-listing-box" href="\/tuotteet\/(\S+\/\S+.html)"/).each do |product|
-    get_lista category.gsub("/",""), product[0]
+  page.scan(/<a class="(first )?white-border-box product-listing-box" href="\/tuotteet\/(\S+\/\S+.html)"/).each do |product|
+    get_lista category.gsub("/",""), product[1]
   end
 end
 
@@ -37,20 +37,10 @@ def get_lista category, product
     product_ean = page.scan(/<td>(\d{10,})<\/td>/)[0][0] 
     puts %("#{category}","#{product_code}","#{product_name}",#{product_ean})
     STDOUT.flush
+  else 
+    #puts "ERROR!!! no EAN on page #{category}/#{product}"
+    STDOUT.flush
   end
 end
 
 scan_all_categories
-
-=begin 
-      page = %(<h1>1001PPE30<br />Lasilista 11x14x3000<br />mänty, puuvalmis<br/></h1>
-      <h3>Tuotetiedot</h3>
-      <table class="specs-table">
-                <tr class="first-row">
-                <td>EAN-koodi:</td>
-        <td>6420611098144</td>
-        </tr>)
-=end
-
-
-
