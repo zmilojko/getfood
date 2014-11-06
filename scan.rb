@@ -10,8 +10,8 @@ def connect
 end
 
 def get_page url
-  connect if @cookie.nil?
-  resp = @http.get url ,@cookie
+  connect if @http.nil?
+  resp = @http.get url #,@cookie
   page = resp.body
 end
 
@@ -36,6 +36,7 @@ def get_lista category, product
   if page.scan(/<td>(\d{10,})<\/td>/).length > 0
     product_ean = page.scan(/<td>(\d{10,})<\/td>/)[0][0] 
     puts %("#{category}","#{product_code}","#{product_name}",#{product_ean})
+    STDOUT.flush
   end
 end
 
