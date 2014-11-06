@@ -1,14 +1,12 @@
 require 'net/http'
-BASE_LINK = "https://www.k-ruokakauppa.fi/k-supermarket-hameenkyla/tuotteet"
+BASE_LINK = "http://www.etlistat.fi/tuotteet/"
 
-baba = %w{
-  103582 103612 103677 103750 103794 104061 104144 103883 103914 105351 105244}
 
 def connect
-  @http = Net::HTTP.new('www.k-ruokakauppa.fi', 443)
-  @http.use_ssl = true
-  r = @http.get("https://www.k-ruokakauppa.fi/k-supermarket-hameenkyla/tuotteet/226921")
-  @cookie = {'Cookie'=>r.to_hash['set-cookie'].collect{|ea|ea[/^.*?;/]}.join}
+  @http = Net::HTTP.new('www.etlistat.fi', 80)
+  @http.use_ssl = false
+  r = @http.get(BASE_LINK)
+  #@cookie = {'Cookie'=>r.to_hash['set-cookie'].collect{|ea|ea[/^.*?;/]}.join}
 end
 
 def get_page url
@@ -17,49 +15,41 @@ def get_page url
   page = resp.body
 end
 
-def get_products_from_category car_id
-  page = get_page "https://www.k-ruokakauppa.fi/k-supermarket-hameenkyla/alakategoria/#{car_id}"
-  page.scan(/<a id="product_(\d+)" class="product_link"/).each do |tuote|
-    getdata tuote[0]
-  end
-  #puts "trying subpages for #{car_id}"
-  #also get additional pages
-  i=0
-  page.scan(/k\-supermarket\-hameenkyla\/alakategoria\/(\d+)\?page\.currentPage\=(\d+)/).each do |add_page|
-    i = add_page[1].to_i
-  end
-  if i>1
-    (2..i).each do |pagenumber|
-      page = get_page "https://www.k-ruokakauppa.fi/k-supermarket-hameenkyla/alakategoria/#{car_id}?page.currentPage=#{pagenumber}"
-      page.scan(/<a id="product_(\d+)" class="product_link"/).each do |tuote|
-        #puts "category #{car_id} page #{pagenumber}"
-        getdata tuote[0]
-      end
-    end
+def scan_all_categories
+  page = get_page BASE_LINK
+  page.scan(/<a href="tuotteet\/(\S+\/)">/).each do |category|
+    get_listat category[0]
   end
 end
 
-def getdata tuoteno
-  page = get_page "#{BASE_LINK}/#{tuoteno}"
-  ean = page[/EAN-koodi: (\d+)/,1]
-  name = page[/\<h1\>(.*)\<\/h1\>/,1]
-  if not ean.nil?
-    puts "\"#{name}\",#{ean}"
-    $stdout.flush
+def get_listat category
+  page = get_page(BASE_LINK + category)
+  page.scan(/<a class="first white-border-box product-listing-box" href="\/tuotteet\/(\S+\/\S+.html)"/).each do |product|
+    get_lista category.gsub("/",""), product[0]
   end
 end
 
-#getdata 226921
-
-#(216000..239999).each do |tuote|
-#  getdata tuote
-#end
-
-#page = get_products_from_category 103582
-
-#get_products_from_category ARGV[0]
-
-baba.each do |cat|
-  get_products_from_category cat
+def get_lista category, product
+  page = get_page(BASE_LINK + product)
+  product_code = page.scan(/<h1>([A-Z0-9]+)<br/)[0][0]
+  product_name = page.scan(/<h1>\S+<br ?\/>(.+)<br/)[0][0].gsub("<br />", ", ")
+  if page.scan(/<td>(\d{10,})<\/td>/).length > 0
+    product_ean = page.scan(/<td>(\d{10,})<\/td>/)[0][0] 
+    puts %("#{category}","#{product_code}","#{product_name}",#{product_ean})
+  end
 end
+
+scan_all_categories
+
+=begin 
+      page = %(<h1>1001PPE30<br />Lasilista 11x14x3000<br />mänty, puuvalmis<br/></h1>
+      <h3>Tuotetiedot</h3>
+      <table class="specs-table">
+                <tr class="first-row">
+                <td>EAN-koodi:</td>
+        <td>6420611098144</td>
+        </tr>)
+=end
+
+
 
